@@ -75,7 +75,7 @@ class MetricsHTTPServer(ThreadingHTTPServer):
 
 
 class MetricsHandler(BaseHTTPRequestHandler):
-    server_version = "gpu-scraper/0.1"
+    server_version = f"gpu-scraper/{__version__}"
 
     def do_GET(self) -> None:
         if self.path != "/metrics":

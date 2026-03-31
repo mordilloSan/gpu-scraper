@@ -1,6 +1,6 @@
 services:
   gpu-scraper:
-    image: gpu-scraper
+    image: ${GPU_SCRAPER_IMAGE:-ghcr.io/mordillosan/gpu-scraper:latest}
     container_name: gpu-scraper
     hostname: gpu-scraper
     restart: unless-stopped
@@ -11,7 +11,7 @@ services:
       - /dev/dri:/dev/dri
     cap_add:
       - PERFMON
-    # Uncomment for NVIDIA GPU support:
+    # Uncomment for NVIDIA GPU support (requires nvidia-container-toolkit):
     # deploy:
     #   resources:
     #     reservations:

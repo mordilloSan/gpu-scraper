@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/mordillosan/gpu-scraper
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: python -m compileall gpu_scraper tests
+      - run: ruff check .
+      - run: python -m unittest discover -s tests -v
+
+  build-and-push:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Extract version metadata
+        id: meta
+        run: |
+          SHA="$(echo ${{ github.sha }} | head -c 7)"
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "tags=${{ env.IMAGE }}:${VERSION},${{ env.IMAGE }}:latest" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.ref }}" == refs/heads/dev ]]; then
+            echo "version=dev-${SHA}" >> "$GITHUB_OUTPUT"
+            echo "tags=${{ env.IMAGE }}:dev,${{ env.IMAGE }}:dev-${SHA}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=main-${SHA}" >> "$GITHUB_OUTPUT"
+            echo "tags=${{ env.IMAGE }}:sha-${SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate tag matches Python version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          PY_VERSION=$(python -c "from gpu_scraper import __version__; print(__version__)")
+          TAG_VERSION="${{ steps.meta.outputs.version }}"
+          if [ "$PY_VERSION" != "$TAG_VERSION" ]; then
+            echo "ERROR: Tag version ($TAG_VERSION) does not match __version__ ($PY_VERSION)"
+            exit 1
+          fi
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: VERSION=${{ steps.meta.outputs.version }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

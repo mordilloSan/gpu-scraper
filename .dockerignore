@@ -1,0 +1,11 @@
+.git
+.github
+.claude
+.ruff_cache
+__pycache__
+*.egg-info
+tests
+contrib
+README.md
+Makefile
+docker-compose.yml

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gpu-scraper"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Prometheus GPU metrics exporter for Intel, AMD, and NVIDIA GPUs"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -13,6 +13,9 @@ authors = [{name = "Codex"}]
 
 [project.scripts]
 gpu-scraper = "gpu_scraper.cli:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "gpu_scraper.__version__"}
 
 [tool.setuptools.packages.find]
 include = ["gpu_scraper*"]

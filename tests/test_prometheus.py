@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from gpu_scraper import __version__
 from gpu_scraper.models import GPUDevice, MetricSample, StateSnapshot
 from gpu_scraper.prometheus import render_metrics
 
@@ -39,9 +40,12 @@ class PrometheusRenderingTests(unittest.TestCase):
             ),
         )
 
-        payload = render_metrics("0.1.0", [snapshot]).decode("utf-8")
+        payload = render_metrics(__version__, [snapshot]).decode("utf-8")
 
-        self.assertIn('gpu_scraper_build_info{version="0.1.0"} 1', payload)
+        self.assertIn(
+            f'gpu_scraper_build_info{{version="{__version__}"}} 1',
+            payload,
+        )
         gpu_info_line = (
             'gpu_info{card="0",device_id="0x46d1",'
             'driver="i915",pci_slot="0000:00:02.0",'
