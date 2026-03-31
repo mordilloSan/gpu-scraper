@@ -26,3 +26,9 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+include = ["gpu_scraper", "tests"]
+exclude = [".venv"]

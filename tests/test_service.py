@@ -5,12 +5,16 @@ import threading
 import time
 import unittest
 import urllib.request
+from collections.abc import Callable
+from types import FrameType
 from unittest import mock
 
-from gpu_scraper.models import CollectorState
+from gpu_scraper.models import CollectorState, MetricSample
 from gpu_scraper.prometheus import device_metric
 from gpu_scraper.service import CollectorWorker, ExporterService
 from tests.test_backends import make_device
+
+type SignalHandler = Callable[[int, FrameType | None], None]
 
 
 class BlockingBackend:
@@ -22,7 +26,7 @@ class BlockingBackend:
         self._device_card = device_card
         self._release = threading.Event()
 
-    def collect(self):
+    def collect(self) -> tuple[MetricSample, ...]:
         self.calls += 1
         if self.calls == 1:
             device = make_device("amd")
@@ -89,7 +93,7 @@ class ServiceTests(unittest.TestCase):
             backend, state, sample_interval=0.01, stop_event=stop_event
         )
         service = ExporterService("127.0.0.1", 0, [worker], [])
-        installed: dict[int, object] = {}
+        installed: dict[int, SignalHandler] = {}
 
         with mock.patch(
             "signal.signal",
@@ -104,7 +108,7 @@ class ServiceTests(unittest.TestCase):
         self.assertTrue(service.stop_event.is_set())
         service.stop()
 
-    def _wait_for(self, predicate, timeout: float = 2.0) -> None:
+    def _wait_for(self, predicate: Callable[[], bool], timeout: float = 2.0) -> None:
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             if predicate():

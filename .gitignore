@@ -3,3 +3,4 @@
 dist/
 build/
 .ruff_cache/
+.venv/

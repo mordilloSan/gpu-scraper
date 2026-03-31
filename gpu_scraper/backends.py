@@ -90,12 +90,18 @@ class IncrementalJsonArrayParser:
 
 
 class IntelSession(Protocol):
-    def read_chunk(self, timeout: float) -> bytes:
+    def read_chunk(self, timeout: float, /) -> bytes:
         """Return the next stdout chunk or raise EOFError/TimeoutError."""
         raise NotImplementedError
 
-    def close(self, timeout: float = 2.0) -> None:
+    def close(self, timeout: float = 2.0, /) -> None:
         """Stop the session and clean up the process."""
+        raise NotImplementedError
+
+
+class NvmlMetricSource(Protocol):
+    def collect_for_slot(self, pci_slot: str, /) -> dict[str, float]:
+        """Collect NVIDIA metrics for a PCI slot."""
         raise NotImplementedError
 
 
@@ -373,9 +379,7 @@ class AmdSysfsBackend:
 
         fan_rpm = _read_scaled_value(hwmon_dir / "fan1_input", scale=1.0)
         if fan_rpm is not None:
-            samples.append(
-                device_metric(self._device, "gpu_fan_speed_rpm", fan_rpm)
-            )
+            samples.append(device_metric(self._device, "gpu_fan_speed_rpm", fan_rpm))
 
         return tuple(samples)
 
@@ -496,9 +500,7 @@ class NvmlManager:
 
             memory_info = NvmlMemory()
             self._check(
-                self._lib.nvmlDeviceGetMemoryInfo(
-                    handle, ctypes.byref(memory_info)
-                )
+                self._lib.nvmlDeviceGetMemoryInfo(handle, ctypes.byref(memory_info))
             )
             metrics["gpu_memory_used_bytes"] = float(memory_info.used)
             metrics["gpu_memory_total_bytes"] = float(memory_info.total)
@@ -640,7 +642,7 @@ class NvmlManager:
 class NvidiaBackend:
     streaming = False
 
-    def __init__(self, device: GPUDevice, manager: NvmlManager) -> None:
+    def __init__(self, device: GPUDevice, manager: NvmlMetricSource) -> None:
         self._device = device
         self._manager = manager
 
