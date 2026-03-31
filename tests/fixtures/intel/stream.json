@@ -1,0 +1,36 @@
+[
+  {
+    "frequency": {
+      "actual": 1200.0
+    },
+    "power": {
+      "GPU": 10.5,
+      "Package": 16.1
+    },
+    "rc6": {
+      "value": 91.5
+    },
+    "engines": {
+      "Render/3D": {
+        "busy": 75.0
+      }
+    }
+  },
+  {
+    "frequency": {
+      "actual": 800.0
+    },
+    "power": {
+      "GPU": 7.25,
+      "Package": 11.75
+    },
+    "rc6": {
+      "value": 98.5
+    },
+    "engines": {
+      "Video": {
+        "busy": 12.5
+      }
+    }
+  }
+]

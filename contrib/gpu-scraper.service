@@ -1,0 +1,18 @@
+[Unit]
+Description=GPU Scraper Prometheus Exporter
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/gpu-scraper --host 0.0.0.0 --port 10043
+Restart=on-failure
+RestartSec=5
+User=gpu-scraper
+Group=gpu-scraper
+
+# Intel collection depends on host perf permissions and access to /dev/dri.
+# NVIDIA collection needs NVML discoverable by the dynamic loader or passed via --nvml-lib.
+# If the library is installed in a non-standard location, set LD_LIBRARY_PATH here for your host.
+
+[Install]
+WantedBy=multi-user.target
