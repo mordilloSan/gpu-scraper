@@ -33,9 +33,11 @@ class CollectorBackend(Protocol):
 
     def collect(self) -> tuple[MetricSample, ...]:
         """Collect the next sample payload for this device."""
+        raise NotImplementedError
 
     def close(self) -> None:
         """Release resources held by this backend."""
+        raise NotImplementedError
 
 
 class IncrementalJsonArrayParser:
@@ -90,9 +92,11 @@ class IncrementalJsonArrayParser:
 class IntelSession(Protocol):
     def read_chunk(self, timeout: float) -> bytes:
         """Return the next stdout chunk or raise EOFError/TimeoutError."""
+        raise NotImplementedError
 
     def close(self, timeout: float = 2.0) -> None:
         """Stop the session and clean up the process."""
+        raise NotImplementedError
 
 
 class SubprocessIntelSession:

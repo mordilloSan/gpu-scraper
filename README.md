@@ -43,3 +43,11 @@ Run the test suite with:
 ```bash
 python3 -m unittest discover -s tests -v
 ```
+
+## Acknowledgments
+
+This project was inspired by and builds on ideas from the following GPU metric exporters:
+
+- **[intel-gpu-exporter](https://github.com/onedr0p/intel-gpu-exporter)** by onedr0p — A Python-based Prometheus exporter for Intel iGPUs using `intel_gpu_top -J`. The original inspiration for the Intel collection approach in this project. Now archived and unmaintained.
+- **[nvidia_gpu_exporter](https://github.com/utkuozdemir/nvidia_gpu_exporter)** by Utku Ozdemir — A Go-based Prometheus exporter for NVIDIA GPUs using `nvidia-smi` with auto-discovery of metric fields. Licensed under MIT.
+- **[device-metrics-exporter](https://github.com/ROCm/device-metrics-exporter)** by AMD ROCm — AMD's official GPU metrics exporter with Kubernetes and Slurm integration for HPC/AI workloads. Licensed under Apache 2.0.
