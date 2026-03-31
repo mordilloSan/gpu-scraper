@@ -235,6 +235,14 @@ class IntelGpuTopBackend:
                 device_metric(self._device, "gpu_core_clock_megahertz", frequency)
             )
 
+        requested_freq = _nested_float(payload, "frequency", "requested")
+        if requested_freq is not None:
+            samples.append(
+                device_metric(
+                    self._device, "gpu_intel_requested_clock_megahertz", requested_freq
+                )
+            )
+
         power_gpu = _nested_float(payload, "power", "GPU")
         if power_gpu is not None:
             samples.append(device_metric(self._device, "gpu_power_watts", power_gpu))
@@ -269,6 +277,26 @@ class IntelGpuTopBackend:
                         {"engine": str(engine_name)},
                     )
                 )
+
+        imc_reads = _nested_float(payload, "imc-bandwidth", "reads")
+        if imc_reads is not None:
+            samples.append(
+                device_metric(
+                    self._device,
+                    "gpu_intel_imc_read_bandwidth_mebibytes_per_second",
+                    imc_reads,
+                )
+            )
+
+        imc_writes = _nested_float(payload, "imc-bandwidth", "writes")
+        if imc_writes is not None:
+            samples.append(
+                device_metric(
+                    self._device,
+                    "gpu_intel_imc_write_bandwidth_mebibytes_per_second",
+                    imc_writes,
+                )
+            )
 
         temperature = _read_scaled_value(self._temperature_path, scale=1000.0)
         if temperature is not None:
@@ -327,6 +355,28 @@ class AmdSysfsBackend:
                 device_metric(self._device, "gpu_utilization_ratio", utilization)
             )
 
+        vram_used = _read_scaled_value(
+            self._device.sysfs_path / "mem_info_vram_used", scale=1.0
+        )
+        if vram_used is not None:
+            samples.append(
+                device_metric(self._device, "gpu_memory_used_bytes", vram_used)
+            )
+
+        vram_total = _read_scaled_value(
+            self._device.sysfs_path / "mem_info_vram_total", scale=1.0
+        )
+        if vram_total is not None:
+            samples.append(
+                device_metric(self._device, "gpu_memory_total_bytes", vram_total)
+            )
+
+        fan_rpm = _read_scaled_value(hwmon_dir / "fan1_input", scale=1.0)
+        if fan_rpm is not None:
+            samples.append(
+                device_metric(self._device, "gpu_fan_speed_rpm", fan_rpm)
+            )
+
         return tuple(samples)
 
     def close(self) -> None:
@@ -341,6 +391,14 @@ class NvmlUtilization(ctypes.Structure):
     _fields_ = [
         ("gpu", ctypes.c_uint),
         ("memory", ctypes.c_uint),
+    ]
+
+
+class NvmlMemory(ctypes.Structure):
+    _fields_ = [
+        ("total", ctypes.c_ulonglong),
+        ("free", ctypes.c_ulonglong),
+        ("used", ctypes.c_ulonglong),
     ]
 
 
@@ -434,6 +492,41 @@ class NvmlManager:
                 )
             )
             metrics["gpu_utilization_ratio"] = utilization.gpu / 100.0
+            metrics["gpu_memory_utilization_ratio"] = utilization.memory / 100.0
+
+            memory_info = NvmlMemory()
+            self._check(
+                self._lib.nvmlDeviceGetMemoryInfo(
+                    handle, ctypes.byref(memory_info)
+                )
+            )
+            metrics["gpu_memory_used_bytes"] = float(memory_info.used)
+            metrics["gpu_memory_total_bytes"] = float(memory_info.total)
+
+            fan_speed = ctypes.c_uint()
+            self._check(
+                self._lib.nvmlDeviceGetFanSpeed(handle, ctypes.byref(fan_speed))
+            )
+            metrics["gpu_fan_speed_ratio"] = fan_speed.value / 100.0
+
+            enc_util = ctypes.c_uint()
+            enc_period = ctypes.c_uint()
+            self._check(
+                self._lib.nvmlDeviceGetEncoderUtilization(
+                    handle, ctypes.byref(enc_util), ctypes.byref(enc_period)
+                )
+            )
+            metrics["gpu_nvidia_encoder_utilization_ratio"] = enc_util.value / 100.0
+
+            dec_util = ctypes.c_uint()
+            dec_period = ctypes.c_uint()
+            self._check(
+                self._lib.nvmlDeviceGetDecoderUtilization(
+                    handle, ctypes.byref(dec_util), ctypes.byref(dec_period)
+                )
+            )
+            metrics["gpu_nvidia_decoder_utilization_ratio"] = dec_util.value / 100.0
+
             return metrics
 
     def _load(self) -> None:
@@ -517,6 +610,28 @@ class NvmlManager:
         lib.nvmlDeviceGetUtilizationRates.argtypes = [
             ctypes.c_void_p,
             ctypes.POINTER(NvmlUtilization),
+        ]
+        lib.nvmlDeviceGetMemoryInfo.restype = ctypes.c_int
+        lib.nvmlDeviceGetMemoryInfo.argtypes = [
+            ctypes.c_void_p,
+            ctypes.POINTER(NvmlMemory),
+        ]
+        lib.nvmlDeviceGetFanSpeed.restype = ctypes.c_int
+        lib.nvmlDeviceGetFanSpeed.argtypes = [
+            ctypes.c_void_p,
+            ctypes.POINTER(ctypes.c_uint),
+        ]
+        lib.nvmlDeviceGetEncoderUtilization.restype = ctypes.c_int
+        lib.nvmlDeviceGetEncoderUtilization.argtypes = [
+            ctypes.c_void_p,
+            ctypes.POINTER(ctypes.c_uint),
+            ctypes.POINTER(ctypes.c_uint),
+        ]
+        lib.nvmlDeviceGetDecoderUtilization.restype = ctypes.c_int
+        lib.nvmlDeviceGetDecoderUtilization.argtypes = [
+            ctypes.c_void_p,
+            ctypes.POINTER(ctypes.c_uint),
+            ctypes.POINTER(ctypes.c_uint),
         ]
         lib.nvmlErrorString.restype = ctypes.c_char_p
         lib.nvmlErrorString.argtypes = [ctypes.c_int]
