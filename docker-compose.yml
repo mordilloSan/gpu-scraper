@@ -1,0 +1,21 @@
+services:
+  gpu-scraper:
+    image: gpu-scraper
+    container_name: gpu-scraper
+    hostname: gpu-scraper
+    restart: unless-stopped
+    ports:
+      - "10043:10043"
+    volumes:
+      - /sys:/sys:ro
+      - /dev/dri:/dev/dri
+    cap_add:
+      - PERFMON
+    # Uncomment for NVIDIA GPU support:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
